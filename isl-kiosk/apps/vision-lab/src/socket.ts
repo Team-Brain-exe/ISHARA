@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const SERVER_URL = "https://glowing-space-fortnight-x5q56vx9xgjqc6rr9-4000.app.github.dev";
+export const SERVER_URL = "https://glowing-space-fortnight-x5q56vx9xgjqc6rr9-4000.app.github.dev";
 
 export const socket = io(SERVER_URL);
 

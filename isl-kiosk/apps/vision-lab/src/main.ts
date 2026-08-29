@@ -4,7 +4,7 @@ import {
   DrawingUtils,
 } from "@mediapipe/tasks-vision";
 import { flattenLandmarks, matchBest, type Frame, type Reference } from "./dtw";
-import { socket } from "./socket";
+import { socket, SERVER_URL } from "./socket";
 
 const video = document.getElementById("video") as HTMLVideoElement;
 const canvas = document.getElementById("overlay") as HTMLCanvasElement;
@@ -194,4 +194,55 @@ clearBtn.addEventListener("click", () => {
 setup().catch((err) => {
   status.textContent = "Error: " + err.message;
   console.error(err);
+});
+
+// --- ML recognition using the real trained ISL model, via the Node server ---
+const mlBtn = document.createElement("button");
+mlBtn.textContent = "🤖 ML Recognize (2s clip)";
+mlBtn.style.marginLeft = "8px";
+recognizeBtn.insertAdjacentElement("afterend", mlBtn);
+
+let mlBusy = false;
+
+async function recordAndSendClip() {
+  const stream = video.srcObject as MediaStream;
+  const chunks: Blob[] = [];
+  const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8" });
+  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+  const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
+
+  status.textContent = "Recording 2s clip for the model…";
+  recorder.start();
+  await new Promise((r) => setTimeout(r, 2000));
+  recorder.stop();
+  await stopped;
+
+  const blob = new Blob(chunks, { type: "video/webm" });
+  const formData = new FormData();
+  formData.append("video", blob, "clip.webm");
+
+  status.textContent = "Sending to model…";
+  try {
+    const res = await fetch(`${SERVER_URL}/recognize`, { method: "POST", body: formData });
+    const data = await res.json();
+    if (data.ok) {
+      result.textContent = `🖐 ${data.turn.text}`;
+      status.textContent = `Model prediction: ${data.raw}`;
+    } else {
+      status.textContent = "Recognition failed: " + (data.error || "unknown error");
+    }
+  } catch (err) {
+    status.textContent = "Network error sending clip";
+    console.error(err);
+  }
+}
+
+mlBtn.addEventListener("click", async () => {
+  if (mlBusy) return;
+  mlBusy = true;
+  mlBtn.disabled = true;
+  await recordAndSendClip();
+  mlBusy = false;
+  mlBtn.disabled = false;
 });

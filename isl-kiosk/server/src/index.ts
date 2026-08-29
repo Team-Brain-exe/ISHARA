@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import multer from "multer";
 
 // ── In-memory session/context engine ───────────────────────
 // MVP: a single active session, per your 5-week scope.
@@ -34,6 +35,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const upload = multer({ storage: multer.memoryStorage() });
+const ISL_MODEL_URL = process.env.ISL_MODEL_URL || "http://localhost:8000";
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: "*" }, // fine for local dev; lock down before deploying
@@ -41,6 +45,47 @@ const io = new Server(httpServer, {
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, session });
+});
+
+// Citizen's camera clip → forwarded to the real ISL recognition model → broadcast
+app.post("/recognize", upload.single("video"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No video uploaded" });
+  }
+  try {
+    const form = new FormData();
+    const blob = new Blob([new Uint8Array(req.file.buffer)], { type: req.file.mimetype || "video/webm" });
+    form.append("file", blob, "clip.webm");
+
+    const modelRes = await fetch(`${ISL_MODEL_URL}/predict`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!modelRes.ok) {
+      const text = await modelRes.text();
+      return res.status(502).json({ error: "Model service error", detail: text });
+    }
+
+    const data = (await modelRes.json()) as { predictions: string[] };
+    const rawLabel = data.predictions?.[0] ?? "unknown";
+    // "83.Afternoon" -> "Afternoon"
+    const label = rawLabel.includes(".") ? rawLabel.split(".").slice(1).join(".") : rawLabel;
+
+    const turn: Turn = {
+      id: crypto.randomUUID(),
+      from: "citizen",
+      text: label,
+      timestamp: Date.now(),
+    };
+    session.turns.push(turn);
+    io.emit("turn:new", turn);
+
+    res.json({ ok: true, turn, raw: rawLabel });
+  } catch (err: any) {
+    console.error("recognize error:", err);
+    res.status(500).json({ error: "Internal error", detail: err.message });
+  }
 });
 
 io.on("connection", (socket) => {
