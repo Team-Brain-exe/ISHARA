@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ISL Voice Lab — Step 3</title>
+  <style>
+    :root {
+      --bg: #faf9f6;
+      --surface: #ffffff;
+      --border: #d8d5cd;
+      --text: #1f2328;
+      --text-muted: #5b5f66;
+      --accent: #0f766e;      /* teal — good contrast on off-white */
+      --accent-hover: #0d5f59;
+      --listening: #b91c1c;   /* red while mic is live */
+      --success: #15803d;
+      --warning: #a16207;
+      --focus-ring: #0f766e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-size: 18px; /* larger base size, kiosk/accessibility friendly */
+      line-height: 1.5;
+    }
+
+    #wrap {
+      max-width: 680px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 24px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    #micBtn {
+      display: block;
+      margin: 32px auto;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px solid var(--accent);
+      background: var(--surface);
+      color: var(--accent);
+      font-size: 44px;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s, color 0.15s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    #micBtn:hover { background: #f0f7f6; }
+    #micBtn:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+    #micBtn.listening {
+      background: var(--listening);
+      border-color: var(--listening);
+      color: #fff;
+      transform: scale(1.08);
+    }
+
+    #status {
+      text-align: center;
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      min-height: 22px;
+    }
+
+    #transcript {
+      margin-top: 28px;
+      padding: 20px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      min-height: 90px;
+      font-size: 22px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    #controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button.action {
+      padding: 14px 22px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 48px; /* accessible tap target */
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    button.action:hover { opacity: 0.9; }
+    button.action:active { transform: scale(0.98); }
+    button.action:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    #sendBtn { background: var(--success); color: #fff; }
+    #editBtn { background: var(--warning); color: #fff; }
+    #clearBtn { background: var(--surface); color: var(--text); border-color: var(--border); }
+
+    #sentLog {
+      margin-top: 24px;
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    #sentLog div {
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <h2>Step 3 — Staff Voice Input</h2>
+    <button id="micBtn" aria-label="Start or stop listening">🎤</button>
+    <div id="status">Tap the mic and speak</div>
+    <div id="transcript">…</div>
+    <div id="controls">
+      <button id="editBtn" class="action">✏️ Edit</button>
+      <button id="sendBtn" class="action">✅ Send to citizen</button>
+      <button id="clearBtn" class="action">🗑 Clear</button>
+    </div>
+    <div id="sentLog"></div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

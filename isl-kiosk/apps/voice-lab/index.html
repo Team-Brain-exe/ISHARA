@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ISL Voice Lab — Staff Side</title>
+  <style>
+    :root {
+      --bg: #faf9f6;
+      --surface: #ffffff;
+      --border: #d8d5cd;
+      --text: #1f2328;
+      --text-muted: #5b5f66;
+      --accent: #0f766e;
+      --listening: #b91c1c;
+      --success: #15803d;
+      --warning: #a16207;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; }
+    #page { display: flex; flex-direction: row; height: 100vh; }
+
+    /* ── Left half: incoming citizen translation, large ── */
+    #leftHalf {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      overflow-y: auto;
+      border-right: 3px solid var(--accent);
+      background: var(--bg);
+    }
+    #leftHalf h3 { margin: 0 0 12px 0; font-size: 15px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    #incomingPanel { display: flex; flex-direction: column; gap: 10px; }
+    .incoming-entry {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-left: 6px solid var(--accent);
+      border-radius: 10px;
+      padding: 18px 20px;
+      font-size: 26px;
+      line-height: 1.4;
+    }
+    #emptyState { opacity: 0.5; font-size: 18px; }
+
+    /* ── Right half: mic + staff transcript ── */
+    #rightHalf {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    #micBtn {
+      display: block; width: 96px; height: 96px; border-radius: 50%;
+      border: 3px solid var(--accent); background: var(--surface); color: var(--accent);
+      font-size: 36px; cursor: pointer; transition: transform 0.15s, background 0.15s, color 0.15s;
+    }
+    #micBtn.listening { background: var(--listening); border-color: var(--listening); color: #fff; transform: scale(1.08); }
+    #status { text-align: center; font-size: 14px; color: var(--text-muted); margin-top: 8px; min-height: 20px; }
+    #transcript {
+      margin-top: 20px; padding: 18px; background: var(--surface); border: 2px solid var(--border);
+      border-radius: 12px; min-height: 70px; width: 100%; max-width: 420px; font-size: 18px; line-height: 1.5;
+    }
+    #controls { display: flex; gap: 10px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
+    button.action { padding: 12px 18px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; }
+    #sendBtn { background: var(--success); color: #fff; }
+    #editBtn { background: var(--warning); color: #fff; }
+    #clearBtn { background: var(--surface); color: var(--text); border: 2px solid var(--border); }
+    #sentLog { margin-top: 16px; font-size: 13px; color: var(--text-muted); width: 100%; max-width: 420px; }
+    #sentLog div { padding: 8px 10px; margin-bottom: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
+  </style>
+</head>
+<body>
+  <div id="page">
+    <div id="leftHalf">
+      <h3>Citizen Translation</h3>
+      <div id="incomingPanel">
+        <div id="emptyState">Waiting for citizen to sign…</div>
+      </div>
+    </div>
+
+    <div id="rightHalf">
+      <h3 style="align-self:center; color:var(--text-muted); font-size:15px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">Your Response</h3>
+      <button id="micBtn" aria-label="Start or stop listening">🎤</button>
+      <div id="status">Tap the mic and speak</div>
+      <div id="transcript">…</div>
+      <div id="controls">
+        <button id="editBtn" class="action">✏️ Edit</button>
+        <button id="sendBtn" class="action">✅ Send to citizen</button>
+        <button id="clearBtn" class="action">🗑 Clear</button>
+      </div>
+      <div id="sentLog"></div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

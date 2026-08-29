@@ -1,0 +1,9 @@
+{
+  "name": "isl-kiosk",
+  "private": true,
+  "scripts": {
+    "dev:citizen": "pnpm --filter citizen dev",
+    "dev:staff": "pnpm --filter staff dev",
+    "dev:vision": "pnpm --filter vision-lab dev"
+  }
+}

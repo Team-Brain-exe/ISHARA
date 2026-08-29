@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ISL Vision Lab — Citizen Side</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #0b1020; color: #eee; font-family: system-ui, sans-serif; }
+    #page { display: flex; flex-direction: row; height: 100vh; }
+
+    /* ── Left half: camera + sign controls ── */
+    #leftHalf {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      border-right: 3px solid #22d3ee;
+      overflow: hidden;
+    }
+    #wrap {
+      position: relative;
+      width: 90%;
+      max-width: 480px;
+      aspect-ratio: 4 / 3;
+    }
+    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 12px; }
+    #controls { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    input, button { padding: 8px 12px; border-radius: 8px; border: none; font-size: 14px; }
+    button { background: #22d3ee; cursor: pointer; font-weight: 600; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    #status { text-align: center; margin-top: 6px; font-size: 13px; opacity: 0.75; }
+    #result { text-align: center; font-size: 24px; font-weight: 700; margin-top: 8px; min-height: 32px; color: #22d3ee; }
+    #refList { margin-top: 6px; font-size: 12px; opacity: 0.7; text-align: center; }
+
+    /* ── Right half: staff responses, large and readable ── */
+    #rightHalf {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      overflow-y: auto;
+      background: #10172b;
+    }
+    #rightHalf h3 { margin: 0 0 12px 0; font-size: 16px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
+    #incomingPanel { display: flex; flex-direction: column; gap: 10px; }
+    .incoming-entry {
+      background: #1a2340;
+      border-left: 5px solid #22d3ee;
+      border-radius: 10px;
+      padding: 18px 20px;
+      font-size: 26px;
+      line-height: 1.4;
+    }
+    #emptyState { opacity: 0.5; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div id="page">
+    <div id="leftHalf">
+      <div id="wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <div id="controls">
+        <input id="labelInput" placeholder="word e.g. hello" />
+        <button id="recordBtn">🔴 Record sign (1.5s)</button>
+        <button id="recognizeBtn">▶️ Start recognizing</button>
+        <button id="stopBtn" disabled>⏹ Stop recognizing</button>
+        <button id="clearBtn">🗑 Clear saved signs</button>
+      </div>
+      <div id="status">Requesting camera…</div>
+      <div id="result"></div>
+      <div id="refList"></div>
+    </div>
+
+    <div id="rightHalf">
+      <h3>Staff Response</h3>
+      <div id="incomingPanel">
+        <div id="emptyState">Waiting for staff to respond…</div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
