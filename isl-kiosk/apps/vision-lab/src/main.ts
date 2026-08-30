@@ -246,3 +246,64 @@ mlBtn.addEventListener("click", async () => {
   mlBusy = false;
   mlBtn.disabled = false;
 });
+
+// --- Word testing panel: track expected vs predicted for building your demo shortlist ---
+const testPanel = document.createElement("div");
+testPanel.style.maxWidth = "480px";
+testPanel.style.margin = "20px auto";
+testPanel.style.padding = "16px";
+testPanel.style.background = "#131a30";
+testPanel.style.borderRadius = "10px";
+testPanel.style.fontSize = "14px";
+
+testPanel.innerHTML = `
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+    <input id="expectedWordInput" placeholder="word you're about to sign, e.g. Hello"
+      style="flex:1; padding:8px; border-radius:6px; border:none;" />
+  </div>
+  <div id="testStats" style="margin-bottom:10px; opacity:0.8;">No tests yet.</div>
+  <div id="testLog" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+`;
+document.body.appendChild(testPanel);
+
+const expectedWordInput = document.getElementById("expectedWordInput") as HTMLInputElement;
+const testStats = document.getElementById("testStats")!;
+const testLog = document.getElementById("testLog")!;
+
+let testResults: { expected: string; predicted: string; match: boolean }[] = [];
+
+function renderTestStats() {
+  const total = testResults.length;
+  const correct = testResults.filter((r) => r.match).length;
+  testStats.textContent = total === 0
+    ? "No tests yet."
+    : `${correct}/${total} correct (${Math.round((correct / total) * 100)}%)`;
+}
+
+function logTestResult(expected: string, predicted: string) {
+  const match = predicted.toLowerCase().includes(expected.toLowerCase()) ||
+                expected.toLowerCase().includes(predicted.toLowerCase());
+  testResults.push({ expected, predicted, match });
+  renderTestStats();
+
+  const entry = document.createElement("div");
+  entry.style.padding = "8px 10px";
+  entry.style.borderRadius = "6px";
+  entry.style.background = match ? "#0f3d2e" : "#3d0f0f";
+  entry.style.borderLeft = match ? "4px solid #22c55e" : "4px solid #ef4444";
+  entry.textContent = `${match ? "✅" : "❌"} expected: "${expected}" → predicted: "${predicted}"`;
+  testLog.prepend(entry);
+}
+
+// Wrap the existing ML recognize flow to also log the result against the expected word
+const originalMlBtnHandler = mlBtn.onclick;
+mlBtn.addEventListener("click", async () => {
+  const expected = expectedWordInput.value.trim();
+  // Wait for recordAndSendClip's result to land in `status`/`result`, then log it
+  setTimeout(() => {
+    const predicted = result.textContent?.replace("🖐 ", "").trim() || "";
+    if (expected && predicted) {
+      logTestResult(expected, predicted);
+    }
+  }, 2500); // slightly after the 2s recording + network round trip
+});
