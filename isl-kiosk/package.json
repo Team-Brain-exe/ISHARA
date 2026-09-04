@@ -2,8 +2,8 @@
   "name": "isl-kiosk",
   "private": true,
   "scripts": {
-    "dev:citizen": "pnpm --filter citizen dev",
-    "dev:staff": "pnpm --filter staff dev",
-    "dev:vision": "pnpm --filter vision-lab dev"
+    "dev:vision": "pnpm --filter vision-lab dev",
+    "dev:voice": "pnpm --filter voice-lab dev",
+    "dev:server": "pnpm --filter server dev"
   }
 }
