@@ -4,6 +4,7 @@ import {
   DrawingUtils,
 } from "@mediapipe/tasks-vision";
 import { flattenLandmarks, matchBest, type Frame, type Reference } from "./dtw";
+import { Segmenter } from "./segmenter";
 import { socket, SERVER_URL } from "./socket";
 
 const video = document.getElementById("video") as HTMLVideoElement;
@@ -35,7 +36,7 @@ socket.on("turn:new", (turn: { from: string; text: string }) => {
   status.textContent = "New response from staff →";
 });
 
-const STORAGE_KEY = "isl-vision-lab-references";
+const STORAGE_KEY = "isl-vision-lab-references-v2"; // v2: two-hand, normalized frames — old v1 data isn't compatible
 let references: Reference[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 
 function renderRefList() {
@@ -51,17 +52,51 @@ function renderRefList() {
 }
 renderRefList();
 
-let isRecording = false;
+let isArmedToRecord = false;
 let isRecognizing = false;
-let recordBuffer: Frame[] = [];
-let recognizeWindow: Frame[] = [];
-const RECOGNIZE_WINDOW_SIZE = 45;
-let lastEmittedLabel = "";
-let lastEmitTime = 0;
+let pendingLabel = "";
+let currentFrame: Frame | null = null;
+
+const recognizeSegmenter = new Segmenter(
+  () => { status.textContent = "Signing detected — tracking…"; },
+  (frames) => {
+    if (frames.length < 4) return;
+    const best = matchBest(frames, references);
+    if (best && best.distance < 0.6) {
+      result.textContent = `🖐 ${best.label}`;
+      socket.emit("citizen:sign", { text: best.label });
+      status.textContent = "Recognizing live…";
+    } else {
+      result.textContent = "…not sure, try again";
+      status.textContent = "Recognizing live…";
+    }
+  }
+);
+
+const recordSegmenter = new Segmenter(
+  () => { status.textContent = `Recording "${pendingLabel}"… sign now!`; },
+  (frames) => {
+    isArmedToRecord = false;
+    recordBtn.disabled = false;
+    if (frames.length >= 4) {
+      references.push({ label: pendingLabel, sequence: frames });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(references));
+      renderRefList();
+      status.textContent = `Saved "${pendingLabel}" (${frames.length} frames)`;
+    } else {
+      status.textContent = "Not enough motion captured — try again, hand must be visible.";
+    }
+  },
+  { stillFramesToEnd: 8 }
+);
 
 async function setup() {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { width: 640, height: 480 },
+    video: {
+      width: 640,
+      height: 480,
+      frameRate: { ideal: 60, min: 30 },
+    },
     audio: false,
   });
   video.srcObject = stream;
@@ -80,7 +115,7 @@ async function setup() {
       delegate: "GPU",
     },
     runningMode: "VIDEO",
-    numHands: 1,
+    numHands: 2,
   });
 
   status.textContent = "Live — ready to record or recognize";
@@ -91,42 +126,21 @@ async function setup() {
     const res = handLandmarker.detectForVideo(video, now);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    let currentFrame: Frame | null = null;
+    currentFrame = null;
 
     if (res.landmarks?.length) {
-      const landmarks = res.landmarks[0];
-      drawer.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, {
-        color: isRecording ? "#f87171" : "#22d3ee",
-        lineWidth: 3,
-      });
-      drawer.drawLandmarks(landmarks, { color: "#f472b6", radius: 3 });
-      currentFrame = flattenLandmarks(landmarks);
+      for (const landmarks of res.landmarks) {
+        drawer.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, {
+          color: isArmedToRecord ? "#f87171" : "#22d3ee",
+          lineWidth: 3,
+        });
+        drawer.drawLandmarks(landmarks, { color: "#f472b6", radius: 3 });
+      }
+      currentFrame = flattenLandmarks(res.landmarks);
     }
 
-    if (isRecording && currentFrame) {
-      recordBuffer.push(currentFrame);
-    }
-
-    if (isRecognizing && currentFrame) {
-      recognizeWindow.push(currentFrame);
-      if (recognizeWindow.length > RECOGNIZE_WINDOW_SIZE) {
-        recognizeWindow.shift();
-      }
-      if (recognizeWindow.length === RECOGNIZE_WINDOW_SIZE) {
-        const best = matchBest(recognizeWindow, references);
-        if (best && best.distance < 0.15) {
-          result.textContent = `🖐 ${best.label}`;
-          const nowMs = Date.now();
-          if (best.label !== lastEmittedLabel || nowMs - lastEmitTime > 2000) {
-            socket.emit("citizen:sign", { text: best.label });
-            lastEmittedLabel = best.label;
-            lastEmitTime = nowMs;
-          }
-        } else {
-          result.textContent = "…";
-        }
-      }
-    }
+    if (isArmedToRecord) recordSegmenter.push(currentFrame);
+    if (isRecognizing) recognizeSegmenter.push(currentFrame);
 
     requestAnimationFrame(loop);
   }
@@ -141,23 +155,11 @@ recordBtn.addEventListener("click", () => {
   }
   if (isRecognizing) stopRecognizing();
 
-  isRecording = true;
-  recordBuffer = [];
+  pendingLabel = label;
+  isArmedToRecord = true;
   recordBtn.disabled = true;
-  status.textContent = `Recording "${label}"… sign now!`;
-
-  setTimeout(() => {
-    isRecording = false;
-    recordBtn.disabled = false;
-    if (recordBuffer.length > 5) {
-      references.push({ label, sequence: recordBuffer });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(references));
-      renderRefList();
-      status.textContent = `Saved "${label}" (${recordBuffer.length} frames)`;
-    } else {
-      status.textContent = "Not enough frames captured — try again, hand must be visible.";
-    }
-  }, 1500);
+  recordSegmenter.reset();
+  status.textContent = `Ready — sign "${label}" whenever you like`;
 });
 
 function startRecognizing() {
@@ -166,7 +168,7 @@ function startRecognizing() {
     return;
   }
   isRecognizing = true;
-  recognizeWindow = [];
+  recognizeSegmenter.reset();
   recognizeBtn.disabled = true;
   stopBtn.disabled = false;
   status.textContent = "Recognizing live…";
@@ -174,6 +176,7 @@ function startRecognizing() {
 
 function stopRecognizing() {
   isRecognizing = false;
+  recognizeSegmenter.reset();
   recognizeBtn.disabled = false;
   stopBtn.disabled = true;
   result.textContent = "";
@@ -196,58 +199,87 @@ setup().catch((err) => {
   console.error(err);
 });
 
-// --- ML recognition using the real trained ISL model, via the Node server ---
 const mlBtn = document.createElement("button");
-mlBtn.textContent = "🤖 ML Recognize (2s clip)";
+mlBtn.textContent = "🤖 ML Recognize";
 mlBtn.style.marginLeft = "8px";
 recognizeBtn.insertAdjacentElement("afterend", mlBtn);
 
 let mlBusy = false;
 
-async function recordAndSendClip() {
-  const stream = video.srcObject as MediaStream;
-  const chunks: Blob[] = [];
-  const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8" });
-  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+function recordAndSendClip(): Promise<{ predicted: string; raw: string } | null> {
+  return new Promise((resolve) => {
+    const stream = video.srcObject as MediaStream;
+    const chunks: Blob[] = [];
+    const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8" });
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
-  const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
+    const clipSegmenter = new Segmenter(
+      () => { status.textContent = "Motion detected — recording clip…"; },
+      async (frames) => {
+        clipSegmenter.reset();
+        clearTimeout(noMotionTimer);
+        setTimeout(() => recorder.stop(), 200);
+        void frames;
+      }
+    );
 
-  status.textContent = "Recording 2s clip for the model…";
-  recorder.start();
-  await new Promise((r) => setTimeout(r, 2000));
-  recorder.stop();
-  await stopped;
+    const noMotionTimer = setTimeout(() => {
+      status.textContent = "No signing detected — try again";
+      recorder.stop();
+    }, 6000);
 
-  const blob = new Blob(chunks, { type: "video/webm" });
-  const formData = new FormData();
-  formData.append("video", blob, "clip.webm");
+    const stopped = new Promise<void>((res) => { recorder.onstop = () => res(); });
 
-  status.textContent = "Sending to model…";
-  try {
-    const res = await fetch(`${SERVER_URL}/recognize`, { method: "POST", body: formData });
-    const data = await res.json();
-    if (data.ok) {
-      result.textContent = `🖐 ${data.turn.text}`;
-      status.textContent = `Model prediction: ${data.raw}`;
-    } else {
-      status.textContent = "Recognition failed: " + (data.error || "unknown error");
-    }
-  } catch (err) {
-    status.textContent = "Network error sending clip";
-    console.error(err);
-  }
+    status.textContent = "Waiting for you to start signing…";
+    recorder.start();
+
+    const watcher = setInterval(() => clipSegmenter.push(currentFrame), 1000 / 30);
+
+    stopped.then(async () => {
+      clearInterval(watcher);
+      clearTimeout(noMotionTimer);
+
+      const blob = new Blob(chunks, { type: "video/webm" });
+      if (blob.size === 0) { resolve(null); return; }
+
+      const formData = new FormData();
+      formData.append("video", blob, "clip.webm");
+
+      status.textContent = "Sending to model…";
+      try {
+        const res = await fetch(`${SERVER_URL}/recognize`, { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.ok) {
+          result.textContent = `🖐 ${data.turn.text}`;
+          status.textContent = `Model prediction: ${data.raw}`;
+          resolve({ predicted: data.turn.text, raw: data.raw });
+        } else {
+          status.textContent = "Recognition failed: " + (data.error || "unknown error");
+          resolve(null);
+        }
+      } catch (err) {
+        status.textContent = "Network error sending clip";
+        console.error(err);
+        resolve(null);
+      }
+    });
+  });
 }
 
 mlBtn.addEventListener("click", async () => {
   if (mlBusy) return;
   mlBusy = true;
   mlBtn.disabled = true;
-  await recordAndSendClip();
+  const outcome = await recordAndSendClip();
   mlBusy = false;
   mlBtn.disabled = false;
+
+  const expected = expectedWordInput.value.trim();
+  if (expected && outcome?.predicted) {
+    logTestResult(expected, outcome.predicted);
+  }
 });
 
-// --- Word testing panel: track expected vs predicted for building your demo shortlist ---
 const testPanel = document.createElement("div");
 testPanel.style.maxWidth = "480px";
 testPanel.style.margin = "20px auto";
@@ -294,16 +326,3 @@ function logTestResult(expected: string, predicted: string) {
   entry.textContent = `${match ? "✅" : "❌"} expected: "${expected}" → predicted: "${predicted}"`;
   testLog.prepend(entry);
 }
-
-// Wrap the existing ML recognize flow to also log the result against the expected word
-const originalMlBtnHandler = mlBtn.onclick;
-mlBtn.addEventListener("click", async () => {
-  const expected = expectedWordInput.value.trim();
-  // Wait for recordAndSendClip's result to land in `status`/`result`, then log it
-  setTimeout(() => {
-    const predicted = result.textContent?.replace("🖐 ", "").trim() || "";
-    if (expected && predicted) {
-      logTestResult(expected, predicted);
-    }
-  }, 2500); // slightly after the 2s recording + network round trip
-});
