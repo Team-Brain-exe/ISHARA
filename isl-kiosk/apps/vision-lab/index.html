@@ -2,83 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ISL Vision Lab — Citizen Side</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ISHARA — Citizen Kiosk</title>
   <style>
+    :root {
+      --navy: #0A2F5C;
+      --navy-dark: #071F3D;
+      --paper: #F6F3EC;
+      --panel: #FFFFFF;
+      --ink: #1A2430;
+      --ink-muted: #5B6472;
+      --rule: #D8D2C4;
+      --accent: #C1670A;
+      --accent-dark: #9A5108;
+      --success: #0B6E4F;
+      --alert: #A6321E;
+    }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: #0b1020; color: #eee; font-family: system-ui, sans-serif; }
-    #page { display: flex; flex-direction: row; height: 100vh; }
+    html, body {
+      margin: 0; height: 100%;
+      background: var(--paper); color: var(--ink);
+      font-family: "Segoe UI", Inter, system-ui, sans-serif;
+    }
+    #page { display: flex; flex-direction: column; height: 100vh; }
 
-    /* ── Left half: camera + sign controls ── */
+    #kioskHeader {
+      background: var(--navy);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 24px;
+      flex-shrink: 0;
+      border-bottom: 4px solid var(--accent);
+    }
+    #kioskEmblem {
+      width: 40px; height: 40px; border-radius: 6px;
+      background: #fff; color: var(--navy);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    #kioskTitleBlock { line-height: 1.25; }
+    #kioskKicker { font-size: 12px; letter-spacing: 0.02em; opacity: 0.75; }
+    #kioskTitle { font-size: 19px; font-weight: 600; }
+
+    #body { display: flex; flex-direction: row; flex: 1; overflow: hidden; }
+
     #leftHalf {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 16px;
-      border-right: 3px solid #22d3ee;
+      padding: 20px;
+      border-right: 1px solid var(--rule);
       overflow: hidden;
     }
     #wrap {
       position: relative;
-      width: 90%;
+      width: 88%;
       max-width: 480px;
       aspect-ratio: 4 / 3;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #000;
     }
-    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 12px; }
-    #controls { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
-    input, button { padding: 8px 12px; border-radius: 8px; border: none; font-size: 14px; }
-    button { background: #22d3ee; cursor: pointer; font-weight: 600; }
-    button:disabled { opacity: 0.4; cursor: default; }
-    #status { text-align: center; margin-top: 6px; font-size: 13px; opacity: 0.75; }
-    #result { text-align: center; font-size: 24px; font-weight: 700; margin-top: 8px; min-height: 32px; color: #22d3ee; }
-    #refList { margin-top: 6px; font-size: 12px; opacity: 0.7; text-align: center; }
+    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-    /* ── Right half: staff responses, large and readable ── */
+    #controls { margin-top: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    input {
+      padding: 10px 12px; border-radius: 4px; border: 1px solid var(--rule);
+      font-size: 14px; background: var(--panel); color: var(--ink);
+    }
+    button {
+      padding: 10px 16px; border-radius: 4px; border: 1px solid transparent;
+      font-size: 14px; font-weight: 600; cursor: pointer; min-height: 40px;
+      background: var(--panel); color: var(--navy); border-color: var(--rule);
+    }
+    button:disabled { opacity: 0.4; cursor: default; }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
+    button.primary:hover:not(:disabled) { background: var(--accent-dark); }
+
+    #status { text-align: center; margin-top: 10px; font-size: 13px; color: var(--ink-muted); }
+    #result {
+      text-align: center; font-size: 22px; font-weight: 700; margin-top: 10px;
+      min-height: 44px; color: var(--navy);
+      border: 1px solid var(--rule); border-radius: 4px;
+      padding: 8px 16px; background: var(--panel);
+    }
+    #refList { margin-top: 8px; font-size: 12px; color: var(--ink-muted); text-align: center; }
+
     #rightHalf {
       flex: 1;
       display: flex;
       flex-direction: column;
       padding: 24px;
       overflow-y: auto;
-      background: #10172b;
+      background: var(--paper);
     }
-    #rightHalf h3 { margin: 0 0 12px 0; font-size: 16px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
+    #rightHalf h3 {
+      margin: 0 0 14px 0; font-size: 14px; color: var(--ink-muted);
+      font-weight: 600; letter-spacing: 0.01em;
+    }
     #incomingPanel { display: flex; flex-direction: column; gap: 10px; }
     .incoming-entry {
-      background: #1a2340;
-      border-left: 5px solid #22d3ee;
-      border-radius: 10px;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-left: 5px solid var(--success);
+      border-radius: 4px;
       padding: 18px 20px;
       font-size: 26px;
       line-height: 1.4;
     }
-    #emptyState { opacity: 0.5; font-size: 18px; }
+    #emptyState { color: var(--ink-muted); font-size: 18px; }
   </style>
 </head>
 <body>
   <div id="page">
-    <div id="leftHalf">
-      <div id="wrap">
-        <video id="video" autoplay playsinline muted></video>
-        <canvas id="overlay"></canvas>
+    <header id="kioskHeader">
+      <div id="kioskEmblem">🏛️</div>
+      <div id="kioskTitleBlock">
+        <div id="kioskKicker">ISHARA — Sign Language Assistance Kiosk</div>
+        <div id="kioskTitle">RTO — Learner's License</div>
       </div>
-      <div id="controls">
-        <input id="labelInput" placeholder="word e.g. hello" />
-        <button id="recordBtn">🔴 Arm recording (auto-stops on pause)</button>
-        <button id="recognizeBtn">▶️ Start recognizing</button>
-        <button id="stopBtn" disabled>⏹ Stop recognizing</button>
-        <button id="clearBtn">🗑 Clear saved signs</button>
-      </div>
-      <div id="status">Requesting camera…</div>
-      <div id="result"></div>
-      <div id="refList"></div>
-    </div>
+    </header>
 
-    <div id="rightHalf">
-      <h3>Staff Response</h3>
-      <div id="incomingPanel">
-        <div id="emptyState">Waiting for staff to respond…</div>
+    <div id="body">
+      <div id="leftHalf">
+        <div id="wrap">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="overlay"></canvas>
+        </div>
+        <div id="controls">
+          <input id="labelInput" placeholder="word e.g. hello" />
+          <button id="recordBtn" class="primary">🔴 Arm recording (auto-stops on pause)</button>
+          <button id="recognizeBtn">▶️ Start recognizing</button>
+          <button id="stopBtn" disabled>⏹ Stop recognizing</button>
+          <button id="clearBtn">🗑 Clear saved signs</button>
+        </div>
+        <div id="status">Requesting camera…</div>
+        <div id="result"></div>
+        <div id="refList"></div>
+      </div>
+
+      <div id="rightHalf">
+        <h3>Staff Response</h3>
+        <div id="incomingPanel">
+          <div id="emptyState">Waiting for staff to respond…</div>
+        </div>
       </div>
     </div>
   </div>

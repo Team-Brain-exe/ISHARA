@@ -3,96 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ISL Voice Lab — Staff Side</title>
+  <title>ISHARA — Staff Console</title>
   <style>
     :root {
-      --bg: #faf9f6;
-      --surface: #ffffff;
-      --border: #d8d5cd;
-      --text: #1f2328;
-      --text-muted: #5b5f66;
-      --accent: #0f766e;
-      --listening: #b91c1c;
-      --success: #15803d;
-      --warning: #a16207;
+      --navy: #0A2F5C; --navy-dark: #071F3D;
+      --paper: #F6F3EC; --panel: #FFFFFF;
+      --ink: #1A2430; --ink-muted: #5B6472;
+      --rule: #D8D2C4; --accent: #C1670A; --accent-dark: #9A5108;
+      --success: #0B6E4F; --alert: #A6321E;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; }
-    #page { display: flex; flex-direction: row; height: 100vh; }
+    html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: "Segoe UI", Inter, system-ui, sans-serif; }
+    #page { display: flex; flex-direction: column; height: 100vh; }
 
-    /* ── Left half: incoming citizen translation, large ── */
-    #leftHalf {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 24px;
-      overflow-y: auto;
-      border-right: 3px solid var(--accent);
-      background: var(--bg);
+    #kioskHeader {
+      background: var(--navy); color: #fff;
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 24px; flex-shrink: 0; border-bottom: 4px solid var(--accent);
     }
-    #leftHalf h3 { margin: 0 0 12px 0; font-size: 15px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    #kioskEmblem { width: 40px; height: 40px; border-radius: 6px; background: #fff; color: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    #kioskTitleBlock { line-height: 1.25; }
+    #kioskKicker { font-size: 12px; letter-spacing: 0.02em; opacity: 0.75; }
+    #kioskTitle { font-size: 19px; font-weight: 600; }
+    #domainSelect {
+      margin-left: auto; padding: 8px 12px; border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.08);
+      color: #fff; font-size: 13px;
+    }
+    #domainSelect option { color: var(--ink); }
+
+    #body { display: flex; flex-direction: row; flex: 1; overflow: hidden; }
+
+    #leftHalf { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow-y: auto; border-right: 1px solid var(--rule); }
+    #leftHalf h3 { margin: 0 0 14px 0; font-size: 14px; color: var(--ink-muted); font-weight: 600; letter-spacing: 0.01em; }
     #incomingPanel { display: flex; flex-direction: column; gap: 10px; }
-    .incoming-entry {
-      background: var(--surface);
-      border: 2px solid var(--border);
-      border-left: 6px solid var(--accent);
-      border-radius: 10px;
-      padding: 18px 20px;
-      font-size: 26px;
-      line-height: 1.4;
-    }
-    #emptyState { opacity: 0.5; font-size: 18px; }
+    .incoming-entry { background: var(--panel); border: 1px solid var(--rule); border-left: 5px solid var(--navy); border-radius: 4px; padding: 18px 20px; font-size: 26px; line-height: 1.4; }
+    #emptyState { color: var(--ink-muted); font-size: 18px; }
 
-    /* ── Right half: mic + staff transcript ── */
-    #rightHalf {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      overflow-y: auto;
-    }
+    #rightHalf { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
     #micBtn {
       display: block; width: 96px; height: 96px; border-radius: 50%;
-      border: 3px solid var(--accent); background: var(--surface); color: var(--accent);
+      border: 2px solid var(--accent); background: var(--panel); color: var(--accent);
       font-size: 36px; cursor: pointer; transition: transform 0.15s, background 0.15s, color 0.15s;
     }
-    #micBtn.listening { background: var(--listening); border-color: var(--listening); color: #fff; transform: scale(1.08); }
-    #status { text-align: center; font-size: 14px; color: var(--text-muted); margin-top: 8px; min-height: 20px; }
-    #transcript {
-      margin-top: 20px; padding: 18px; background: var(--surface); border: 2px solid var(--border);
-      border-radius: 12px; min-height: 70px; width: 100%; max-width: 420px; font-size: 18px; line-height: 1.5;
-    }
+    #micBtn.listening { background: var(--alert); border-color: var(--alert); color: #fff; transform: scale(1.08); }
+    #status { text-align: center; font-size: 13px; color: var(--ink-muted); margin-top: 10px; min-height: 20px; }
+    #transcript { margin-top: 18px; padding: 16px; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; min-height: 70px; width: 100%; max-width: 420px; font-size: 17px; line-height: 1.5; }
     #controls { display: flex; gap: 10px; margin-top: 14px; justify-content: center; flex-wrap: wrap; }
-    button.action { padding: 12px 18px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; }
-    #sendBtn { background: var(--success); color: #fff; }
-    #editBtn { background: var(--warning); color: #fff; }
-    #clearBtn { background: var(--surface); color: var(--text); border: 2px solid var(--border); }
-    #sentLog { margin-top: 16px; font-size: 13px; color: var(--text-muted); width: 100%; max-width: 420px; }
-    #sentLog div { padding: 8px 10px; margin-bottom: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
+    button.action { padding: 10px 16px; border-radius: 4px; border: 1px solid var(--rule); font-size: 13px; font-weight: 600; cursor: pointer; min-height: 40px; background: var(--panel); color: var(--navy); }
+    #sendBtn { background: var(--success); color: #fff; border-color: var(--success); }
+    #editBtn { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
+    #sentLog { margin-top: 16px; font-size: 12px; color: var(--ink-muted); width: 100%; max-width: 420px; }
+    #sentLog div { padding: 8px 10px; margin-bottom: 6px; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; color: var(--ink); }
   </style>
 </head>
 <body>
   <div id="page">
-    <div id="leftHalf">
-      <h3>Citizen Translation</h3>
-      <div id="incomingPanel">
-        <div id="emptyState">Waiting for citizen to sign…</div>
+    <header id="kioskHeader">
+      <div id="kioskEmblem">🏛️</div>
+      <div id="kioskTitleBlock">
+        <div id="kioskKicker">ISHARA — Staff Console</div>
+        <div id="kioskTitle">RTO — Learner's License</div>
       </div>
-    </div>
+      <select id="domainSelect">
+        <option value="RTO">RTO — Learner's License</option>
+        <option value="Aadhar">Aadhar — Enrollment/Correction</option>
+        <option value="PAN">PAN — Card Services</option>
+        <option value="General">General / CSC</option>
+      </select>
+    </header>
 
-    <div id="rightHalf">
-      <h3 style="align-self:center; color:var(--text-muted); font-size:15px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">Your Response</h3>
-      <button id="micBtn" aria-label="Start or stop listening">🎤</button>
-      <div id="status">Tap the mic and speak</div>
-      <div id="transcript">…</div>
-      <div id="controls">
-        <button id="editBtn" class="action">✏️ Edit</button>
-        <button id="sendBtn" class="action">✅ Send to citizen</button>
-        <button id="clearBtn" class="action">🗑 Clear</button>
+    <div id="body">
+      <div id="leftHalf">
+        <h3>Citizen Translation</h3>
+        <div id="incomingPanel"><div id="emptyState">Waiting for citizen to sign…</div></div>
       </div>
-      <div id="sentLog"></div>
+      <div id="rightHalf">
+        <button id="micBtn" aria-label="Start or stop listening">🎤</button>
+        <div id="status">Tap the mic and speak</div>
+        <div id="transcript">…</div>
+        <div id="controls">
+          <button id="editBtn" class="action">✏️ Edit</button>
+          <button id="sendBtn" class="action">✅ Send to citizen</button>
+          <button id="clearBtn" class="action">🗑 Clear</button>
+        </div>
+        <div id="sentLog"></div>
+      </div>
     </div>
   </div>
   <script type="module" src="/src/main.ts"></script>
