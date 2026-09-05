@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+opencv-python-headless
+mediapipe==0.10.14
+torch
+omegaconf
+numpy
+pandas
+timm
+pytorchvideo
+transformers
+pytorch-lightning
